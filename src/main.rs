@@ -1,7 +1,7 @@
 use clap::{Args, Parser, Subcommand};
 use serde::{Deserialize, Serialize};
 
-#[derive(Parser)]
+#[derive(Parser, Serialize, Deserialize, PartialEq)]
 #[command(version, about, long_about = None, disable_help_subcommand = true)]
 struct Cli {
     /// Verbosity
@@ -18,7 +18,7 @@ struct Cli {
     operation: Option<Operations>,
 }
 
-#[derive(Subcommand)]
+#[derive(Subcommand, Serialize, Deserialize, PartialEq)]
 enum Operations {
     /// Counts up from 0 to the given number
     Increment(OpArgs),
@@ -28,7 +28,7 @@ enum Operations {
     Split(OpArgs),
 }
 
-#[derive(Args)]
+#[derive(Args, Serialize, Deserialize, PartialEq)]
 struct OpArgs {
     /// Number to use
     number: i32,
@@ -65,7 +65,7 @@ fn main() {
         _ => println!("You can't get crazier than this"),
     }
 
-    match cli.args {
+    match &cli.args {
         Some(args) => {
             println!("Arg vec: {:?}", args);
         }
@@ -75,7 +75,13 @@ fn main() {
     }
 
     if cli.flag {
-        println!("Flag enabled");
+        println!("TOML flag enabled\n// BEGIN TOML");
+        let toml_cmd = toml::to_string(&cli).expect("Unable to serialize the CLI using TOML");
+        println!("{}\n// END TOML", toml_cmd);
+        let reparsed: Cli = toml::from_str(&toml_cmd).expect("Unable to deserialize the CLI using TOML");
+        if &cli != &reparsed {
+            panic!("Reparsed command is not equal to original command");
+        }
     }
 
     match &cli.operation {
